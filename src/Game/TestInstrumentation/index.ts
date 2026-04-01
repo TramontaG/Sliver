@@ -52,6 +52,7 @@ type SessionSnapshot = {
 
 type TableSnapshot = EntitySnapshot & {
   state: string | null;
+  seatCount: number;
   activeGroupId: string | null;
   occupiedCustomerIds: string[];
 };
@@ -169,6 +170,10 @@ const createEntitySnapshot = (gameObject: RuntimeGameObject): EntitySnapshot => 
 };
 
 const createTableSnapshot = (gameObject: RuntimeGameObject): TableSnapshot => {
+  const inspectableGameObject = gameObject as RuntimeGameObject & {
+    getSeatCount?: () => number;
+  };
+
   return {
     ...createEntitySnapshot(gameObject),
     state: readStringProperty(gameObject, [
@@ -176,6 +181,10 @@ const createTableSnapshot = (gameObject: RuntimeGameObject): TableSnapshot => {
       "tableState",
       "state",
     ]),
+    seatCount:
+      typeof inspectableGameObject.getSeatCount === "function"
+        ? inspectableGameObject.getSeatCount()
+        : gameObject.getChildren().filter((child) => child.name === "Seat").length,
     activeGroupId: readStringProperty(gameObject, [
       "activeGroupId",
       "groupId",

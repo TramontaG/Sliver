@@ -15,6 +15,7 @@ type BrowserGameSnapshot = {
       y: number;
     };
     state: string | null;
+    seatCount: number;
     activeGroupId: string | null;
     occupiedCustomerIds: string[];
   }>;
@@ -93,6 +94,29 @@ const waitForWaitingGroup = async (page: Page, count: number) => {
   );
 };
 
+const customerCountsToCover = [1, 2, 4] as const;
+
+const getTargetTable = (
+  snapshot: BrowserGameSnapshot,
+  customerCount: number
+) => {
+  return [...snapshot.tables]
+    .filter((table) => {
+      return table.state === "free" && table.seatCount >= customerCount;
+    })
+    .sort((a, b) => {
+      if (a.seatCount !== b.seatCount) {
+        return a.seatCount - b.seatCount;
+      }
+
+      if (a.scenePosition.x !== b.scenePosition.x) {
+        return a.scenePosition.x - b.scenePosition.x;
+      }
+
+      return a.scenePosition.y - b.scenePosition.y;
+    })[0];
+};
+
 test.describe("customer seating flow", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -101,196 +125,193 @@ test.describe("customer seating flow", () => {
     });
   });
 
-  test("selects a waiting customer group and moves the hero to reception", async ({
-    page,
-  }) => {
-    test.setTimeout(20000);
+  for (const customerCount of customerCountsToCover) {
+    test(`selects a waiting customer group and moves the hero to reception (${customerCount} customers)`, async ({
+      page,
+    }) => {
+      test.setTimeout(20000);
 
-    const canvas = page.locator("canvas").first();
+      const canvas = page.locator("canvas").first();
 
-    await page.evaluate(() => {
-      window.__testApi!.spawnCustomer(2);
-    });
-    await waitForWaitingGroup(page, 2);
+      await page.evaluate((count) => {
+        window.__testApi!.spawnCustomer(count);
+      }, customerCount);
+      await waitForWaitingGroup(page, customerCount);
 
-    const snapshotBeforeClick = await getSnapshot(page);
-    const selectedGroupId =
-      snapshotBeforeClick.customers[0]?.groupId ?? null;
-    expect(selectedGroupId).not.toBeNull();
-    if (!selectedGroupId) {
-      throw new Error("Expected a spawned customer group to be available.");
-    }
-
-    const groupCustomers = snapshotBeforeClick.customers.filter((customer) => {
-      return customer.groupId === selectedGroupId;
-    });
-    const rightmostCustomer = [...groupCustomers].sort((a, b) => {
-      return b.scenePosition.x - a.scenePosition.x;
-    })[0];
-    expect(rightmostCustomer).toBeTruthy();
-    if (!rightmostCustomer) {
-      throw new Error("Expected to find a customer to click.");
-    }
-
-    await clickScenePosition(canvas, rightmostCustomer.scenePosition);
-
-    await page.waitForFunction(
-      (groupId) => {
-        const snapshot = window.__testApi?.getSnapshot();
-        if (!snapshot?.hero) {
-          return false;
-        }
-
-        const groupCustomers = snapshot.customers.filter((customer) => {
-          return customer.groupId === groupId;
-        });
-        if (groupCustomers.length === 0) {
-          return false;
-        }
-
-        const allSelected = groupCustomers.every((customer) => {
-          return customer.selected === true;
-        });
-        if (!allSelected) {
-          return false;
-        }
-
-        const rightmostCustomer = [...groupCustomers].sort((a, b) => {
-          return b.scenePosition.x - a.scenePosition.x;
-        })[0];
-        if (!rightmostCustomer) {
-          return false;
-        }
-
-        const receptionPosition = {
-          x: rightmostCustomer.scenePosition.x + 32,
-          y: rightmostCustomer.scenePosition.y,
-        };
-
-        return (
-          Math.abs(snapshot.hero.scenePosition.x - receptionPosition.x) <= 4 &&
-          Math.abs(snapshot.hero.scenePosition.y - receptionPosition.y) <= 4
-        );
-      },
-      selectedGroupId,
-      {
-        timeout: 10000,
+      const snapshotBeforeClick = await getSnapshot(page);
+      const selectedGroupId =
+        snapshotBeforeClick.customers[0]?.groupId ?? null;
+      expect(selectedGroupId).not.toBeNull();
+      if (!selectedGroupId) {
+        throw new Error("Expected a spawned customer group to be available.");
       }
-    );
-  });
 
-  test("seats the selected customer group at a free table via browser clicks", async ({
-    page,
-  }) => {
-    test.setTimeout(30000);
-
-    const canvas = page.locator("canvas").first();
-
-    await page.evaluate(() => {
-      window.__testApi!.spawnCustomer(2);
-    });
-    await waitForWaitingGroup(page, 2);
-
-    const snapshotBeforeSelection = await getSnapshot(page);
-    const selectedGroupId =
-      snapshotBeforeSelection.customers[0]?.groupId ?? null;
-    expect(selectedGroupId).not.toBeNull();
-    if (!selectedGroupId) {
-      throw new Error("Expected a spawned customer group to be available.");
-    }
-
-    const groupCustomers = snapshotBeforeSelection.customers.filter((customer) => {
-      return customer.groupId === selectedGroupId;
-    });
-    const clickTargetCustomer = [...groupCustomers].sort((a, b) => {
-      return b.scenePosition.x - a.scenePosition.x;
-    })[0];
-    expect(clickTargetCustomer).toBeTruthy();
-    if (!clickTargetCustomer) {
-      throw new Error("Expected to find a customer to click.");
-    }
-
-    const targetTable = [...snapshotBeforeSelection.tables]
-      .filter((table) => table.state === "free")
-      .sort((a, b) => {
-        if (a.scenePosition.x !== b.scenePosition.x) {
-          return a.scenePosition.x - b.scenePosition.x;
-        }
-
-        return a.scenePosition.y - b.scenePosition.y;
+      const groupCustomers = snapshotBeforeClick.customers.filter((customer) => {
+        return customer.groupId === selectedGroupId;
+      });
+      const rightmostCustomer = [...groupCustomers].sort((a, b) => {
+        return b.scenePosition.x - a.scenePosition.x;
       })[0];
-    expect(targetTable).toBeTruthy();
-    if (!targetTable) {
-      throw new Error("Expected to find a free table for the spawned group.");
-    }
-
-    await clickScenePosition(canvas, clickTargetCustomer.scenePosition);
-
-    await page.waitForFunction(
-      (groupId) => {
-        const snapshot = window.__testApi?.getSnapshot();
-        if (!snapshot) {
-          return false;
-        }
-
-        const groupCustomers = snapshot.customers.filter((customer) => {
-          return customer.groupId === groupId;
-        });
-
-        return (
-          groupCustomers.length > 0 &&
-          groupCustomers.every((customer) => customer.selected)
-        );
-      },
-      selectedGroupId,
-      {
-        timeout: 5000,
+      expect(rightmostCustomer).toBeTruthy();
+      if (!rightmostCustomer) {
+        throw new Error("Expected to find a customer to click.");
       }
-    );
 
-    await clickScenePosition(canvas, targetTable.scenePosition);
+      await clickScenePosition(canvas, rightmostCustomer.scenePosition);
 
-    await page.waitForFunction(
-      ({ groupId, tableId, expectedCount }) => {
-        const snapshot = window.__testApi?.getSnapshot();
-        if (!snapshot) {
-          return false;
+      await page.waitForFunction(
+        (groupId) => {
+          const snapshot = window.__testApi?.getSnapshot();
+          if (!snapshot?.hero) {
+            return false;
+          }
+
+          const groupCustomers = snapshot.customers.filter((customer) => {
+            return customer.groupId === groupId;
+          });
+          if (groupCustomers.length === 0) {
+            return false;
+          }
+
+          const allSelected = groupCustomers.every((customer) => {
+            return customer.selected === true;
+          });
+          if (!allSelected) {
+            return false;
+          }
+
+          const rightmostCustomer = [...groupCustomers].sort((a, b) => {
+            return b.scenePosition.x - a.scenePosition.x;
+          })[0];
+          if (!rightmostCustomer) {
+            return false;
+          }
+
+          const receptionPosition = {
+            x: rightmostCustomer.scenePosition.x + 32,
+            y: rightmostCustomer.scenePosition.y,
+          };
+
+          return (
+            Math.abs(snapshot.hero.scenePosition.x - receptionPosition.x) <= 4 &&
+            Math.abs(snapshot.hero.scenePosition.y - receptionPosition.y) <= 4
+          );
+        },
+        selectedGroupId,
+        {
+          timeout: 10000,
         }
-
-        const table = snapshot.tables.find((entry) => entry.id === tableId);
-        const groupCustomers = snapshot.customers.filter((customer) => {
-          return customer.groupId === groupId;
-        });
-
-        if (!table || groupCustomers.length !== expectedCount) {
-          return false;
-        }
-
-        return (
-          table.state === "occupied_waiting_order" &&
-          table.activeGroupId === groupId &&
-          table.occupiedCustomerIds.length === expectedCount &&
-          groupCustomers.every((customer) => {
-            return customer.state === "seated" && customer.selected === false;
-          })
-        );
-      },
-      {
-        groupId: selectedGroupId,
-        tableId: targetTable.id,
-        expectedCount: groupCustomers.length,
-      },
-      {
-        timeout: 15000,
-      }
-    );
-
-    const finalSnapshot = await getSnapshot(page);
-    const finalTable = finalSnapshot.tables.find((table) => {
-      return table.id === targetTable.id;
+      );
     });
-    expect(finalTable?.state).toBe("occupied_waiting_order");
-    expect(finalTable?.activeGroupId).toBe(selectedGroupId);
-    expect(finalTable?.occupiedCustomerIds).toHaveLength(groupCustomers.length);
-  });
+
+    test(`seats the selected customer group at a compatible free table via browser clicks (${customerCount} customers)`, async ({
+      page,
+    }) => {
+      test.setTimeout(30000);
+
+      const canvas = page.locator("canvas").first();
+
+      await page.evaluate((count) => {
+        window.__testApi!.spawnCustomer(count);
+      }, customerCount);
+      await waitForWaitingGroup(page, customerCount);
+
+      const snapshotBeforeSelection = await getSnapshot(page);
+      const selectedGroupId =
+        snapshotBeforeSelection.customers[0]?.groupId ?? null;
+      expect(selectedGroupId).not.toBeNull();
+      if (!selectedGroupId) {
+        throw new Error("Expected a spawned customer group to be available.");
+      }
+
+      const groupCustomers = snapshotBeforeSelection.customers.filter((customer) => {
+        return customer.groupId === selectedGroupId;
+      });
+      const clickTargetCustomer = [...groupCustomers].sort((a, b) => {
+        return b.scenePosition.x - a.scenePosition.x;
+      })[0];
+      expect(clickTargetCustomer).toBeTruthy();
+      if (!clickTargetCustomer) {
+        throw new Error("Expected to find a customer to click.");
+      }
+
+      const targetTable = getTargetTable(snapshotBeforeSelection, customerCount);
+      expect(targetTable).toBeTruthy();
+      if (!targetTable) {
+        throw new Error(
+          `Expected to find a free table for a group of ${customerCount}.`
+        );
+      }
+
+      await clickScenePosition(canvas, clickTargetCustomer.scenePosition);
+
+      await page.waitForFunction(
+        (groupId) => {
+          const snapshot = window.__testApi?.getSnapshot();
+          if (!snapshot) {
+            return false;
+          }
+
+          const groupCustomers = snapshot.customers.filter((customer) => {
+            return customer.groupId === groupId;
+          });
+
+          return (
+            groupCustomers.length > 0 &&
+            groupCustomers.every((customer) => customer.selected)
+          );
+        },
+        selectedGroupId,
+        {
+          timeout: 5000,
+        }
+      );
+
+      await clickScenePosition(canvas, targetTable.scenePosition);
+
+      await page.waitForFunction(
+        ({ groupId, tableId, expectedCount }) => {
+          const snapshot = window.__testApi?.getSnapshot();
+          if (!snapshot) {
+            return false;
+          }
+
+          const table = snapshot.tables.find((entry) => entry.id === tableId);
+          const groupCustomers = snapshot.customers.filter((customer) => {
+            return customer.groupId === groupId;
+          });
+
+          if (!table || groupCustomers.length !== expectedCount) {
+            return false;
+          }
+
+          return (
+            table.state === "occupied_waiting_order" &&
+            table.activeGroupId === groupId &&
+            table.occupiedCustomerIds.length === expectedCount &&
+            groupCustomers.every((customer) => {
+              return customer.state === "seated" && customer.selected === false;
+            })
+          );
+        },
+        {
+          groupId: selectedGroupId,
+          tableId: targetTable.id,
+          expectedCount: groupCustomers.length,
+        },
+        {
+          timeout: 15000,
+        }
+      );
+
+      const finalSnapshot = await getSnapshot(page);
+      const finalTable = finalSnapshot.tables.find((table) => {
+        return table.id === targetTable.id;
+      });
+      expect(finalTable?.state).toBe("occupied_waiting_order");
+      expect(finalTable?.seatCount).toBeGreaterThanOrEqual(customerCount);
+      expect(finalTable?.activeGroupId).toBe(selectedGroupId);
+      expect(finalTable?.occupiedCustomerIds).toHaveLength(groupCustomers.length);
+    });
+  }
 });

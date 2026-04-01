@@ -119,6 +119,7 @@ describe("createGameSnapshot", () => {
       name: "Table",
       position: vector(80, 96),
       extra: {
+        getSeatCount: () => 4,
         serviceState: "free",
         activeGroupId: "group-1",
         occupiedCustomerIds: ["customer-1"],
@@ -155,6 +156,7 @@ describe("createGameSnapshot", () => {
           position: vector(80, 96),
           scenePosition: vector(80, 96),
           state: "free",
+          seatCount: 4,
           activeGroupId: "group-1",
           occupiedCustomerIds: ["customer-1"],
         },

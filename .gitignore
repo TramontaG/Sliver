@@ -13,6 +13,8 @@ dist-ssr
 *.local
 playwright-report
 test-results
+playwright-artifacts
+*.webm
 
 # Editor directories and files
 .vscode/*
