@@ -1,4 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import {
+  saveCanvasRecordingForPage,
+  startCanvasRecordingForPage,
+} from "./helpers/canvasRecording";
 
 type BrowserGameSnapshot = {
   hero: {
@@ -36,6 +40,8 @@ declare global {
     __testApi?: {
       getSnapshot: () => BrowserGameSnapshot;
       spawnCustomer: (count?: number) => void;
+      startCanvasRecording?: (options?: { fps?: number }) => Promise<boolean>;
+      downloadCanvasRecording?: (fileName?: string) => Promise<boolean>;
     };
   }
 }
@@ -123,6 +129,11 @@ test.describe("customer seating flow", () => {
     await page.waitForFunction(() => {
       return typeof window.__testApi?.getSnapshot === "function";
     });
+    await startCanvasRecordingForPage(page, 60);
+  });
+
+  test.afterEach(async ({ page }, testInfo) => {
+    await saveCanvasRecordingForPage(page, testInfo);
   });
 
   for (const customerCount of customerCountsToCover) {

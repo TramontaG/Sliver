@@ -79,6 +79,7 @@ export default defineConfig({
     ],
   ],
   use: {
+    acceptDownloads: true,
     baseURL: "http://127.0.0.1:4173",
     viewport: {
       width: 1600,

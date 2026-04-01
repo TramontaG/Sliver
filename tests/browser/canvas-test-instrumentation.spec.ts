@@ -1,4 +1,8 @@
 import { expect, test } from "@playwright/test";
+import {
+  saveCanvasRecordingForPage,
+  startCanvasRecordingForPage,
+} from "./helpers/canvasRecording";
 
 type BrowserGameSnapshot = {
   session: {
@@ -30,6 +34,8 @@ declare global {
       getCustomers: () => BrowserGameSnapshot["customers"];
       spawnCustomer: (count?: number) => void;
       tick: (count?: number) => BrowserGameSnapshot;
+      startCanvasRecording?: (options?: { fps?: number }) => Promise<boolean>;
+      downloadCanvasRecording?: (fileName?: string) => Promise<boolean>;
     };
   }
 }
@@ -40,6 +46,11 @@ test.describe("canvas test instrumentation", () => {
     await page.waitForFunction(() => {
       return typeof window.__testApi?.getSnapshot === "function";
     });
+    await startCanvasRecordingForPage(page, 60);
+  });
+
+  test.afterEach(async ({ page }, testInfo) => {
+    await saveCanvasRecordingForPage(page, testInfo);
   });
 
   test("reads the gameplay snapshot from the browser runtime", async ({

@@ -85,6 +85,8 @@ type BrowserTestApi = {
   getCustomers: () => CustomerSnapshot[];
   spawnCustomer: (count?: number) => void;
   tick: (count?: number) => GameSnapshot;
+  startCanvasRecording: (options?: { fps?: number }) => Promise<boolean>;
+  downloadCanvasRecording: (fileName?: string) => Promise<boolean>;
 };
 
 type BrowserTestApiHost = {
@@ -101,6 +103,32 @@ declare global {
     __testApi?: BrowserTestApi;
   }
 }
+
+type CanvasRecordingState = {
+  mediaRecorder: MediaRecorder | null;
+  stream: MediaStream | null;
+  chunks: Blob[];
+  mimeType: string;
+  width: number;
+  height: number;
+  fps: number;
+  stopPromise: Promise<Blob | null> | null;
+};
+
+const createCanvasRecordingState = (): CanvasRecordingState => {
+  return {
+    mediaRecorder: null,
+    stream: null,
+    chunks: [],
+    mimeType: "video/webm",
+    width: 0,
+    height: 0,
+    fps: 60,
+    stopPromise: null,
+  };
+};
+
+let canvasRecordingState = createCanvasRecordingState();
 
 const toPoint = ({ x, y }: VectorLike): VectorLike => ({ x, y });
 
@@ -238,6 +266,163 @@ const normalizeTickCount = (count?: number): number => {
   return Math.max(0, Math.floor(count));
 };
 
+const normalizeRecordingFps = (fps?: number): number => {
+  if (typeof fps !== "number" || Number.isNaN(fps)) {
+    return 60;
+  }
+
+  return Math.max(1, Math.min(120, Math.floor(fps)));
+};
+
+const getSupportedRecordingMimeType = (): string => {
+  if (typeof MediaRecorder === "undefined") {
+    return "video/webm";
+  }
+
+  const preferredMimeTypes = [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+
+  for (const mimeType of preferredMimeTypes) {
+    if (
+      typeof MediaRecorder.isTypeSupported === "function" &&
+      MediaRecorder.isTypeSupported(mimeType)
+    ) {
+      return mimeType;
+    }
+  }
+
+  return "video/webm";
+};
+
+const startCanvasRecording = async (
+  options?: {
+    fps?: number;
+  }
+): Promise<boolean> => {
+  if (
+    typeof document === "undefined" ||
+    typeof HTMLCanvasElement === "undefined" ||
+    typeof MediaRecorder === "undefined"
+  ) {
+    return false;
+  }
+
+  if (canvasRecordingState.mediaRecorder?.state === "recording") {
+    return true;
+  }
+
+  const canvas = document.querySelector("canvas");
+  if (!(canvas instanceof HTMLCanvasElement)) {
+    return false;
+  }
+
+  const fps = normalizeRecordingFps(options?.fps);
+  const stream = canvas.captureStream(fps);
+  const mimeType = getSupportedRecordingMimeType();
+  const mediaRecorder = new MediaRecorder(
+    stream,
+    mimeType ? { mimeType } : undefined
+  );
+  const chunks: Blob[] = [];
+
+  mediaRecorder.addEventListener("dataavailable", (event) => {
+    if (event.data && event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  });
+
+  canvasRecordingState = {
+    mediaRecorder,
+    stream,
+    chunks,
+    mimeType: mediaRecorder.mimeType || mimeType || "video/webm",
+    width: canvas.width,
+    height: canvas.height,
+    fps,
+    stopPromise: null,
+  };
+
+  mediaRecorder.start(250);
+  return true;
+};
+
+const stopCanvasRecording = async (): Promise<Blob | null> => {
+  const activeRecording = canvasRecordingState;
+
+  if (!activeRecording.mediaRecorder) {
+    return null;
+  }
+
+  if (activeRecording.stopPromise) {
+    return activeRecording.stopPromise;
+  }
+
+  activeRecording.stopPromise = new Promise((resolve, reject) => {
+    const finalize = () => {
+      try {
+        const blob = new Blob(activeRecording.chunks, {
+          type: activeRecording.mimeType,
+        });
+        resolve(blob);
+      } catch (error) {
+        reject(error);
+      } finally {
+        activeRecording.stream?.getTracks().forEach((track) => track.stop());
+        canvasRecordingState = createCanvasRecordingState();
+      }
+    };
+
+    if (activeRecording.mediaRecorder?.state === "inactive") {
+      void finalize();
+      return;
+    }
+
+    activeRecording.mediaRecorder.addEventListener(
+      "stop",
+      () => {
+        void finalize();
+      },
+      { once: true }
+    );
+    activeRecording.mediaRecorder.stop();
+  });
+
+  return activeRecording.stopPromise;
+};
+
+const downloadCanvasRecording = async (fileName = "canvas-recording.webm") => {
+  try {
+    const recordingBlob = await stopCanvasRecording();
+    if (!recordingBlob) {
+      return false;
+    }
+
+    if (typeof document === "undefined" || typeof URL === "undefined") {
+      return false;
+    }
+
+    const anchor = document.createElement("a");
+    const objectUrl = URL.createObjectURL(recordingBlob);
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 1000);
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const createGameSnapshot = (game: RuntimeGame): GameSnapshot => {
   const context = game.getContext();
   const currentScene = context.getCurrentScene();
@@ -302,6 +487,8 @@ const createBrowserTestApi = (game: RuntimeGame): BrowserTestApi => {
       });
     },
     tick: (count?: number) => advanceGameTicks(game, count),
+    startCanvasRecording,
+    downloadCanvasRecording,
   };
 };
 

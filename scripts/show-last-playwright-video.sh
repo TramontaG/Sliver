@@ -8,6 +8,56 @@ viewer_dir="${artifacts_root}/.last-video-viewer"
 pid_file="${viewer_dir}/server.pid"
 log_file="${viewer_dir}/server.log"
 
+humanize_video_label() {
+  local relative_path="$1"
+  local value="${relative_path}"
+
+  if [[ "${value}" == */video.webm ]]; then
+    value="$(basename "$(dirname "${value}")")"
+  else
+    value="${value%.webm}"
+    value="${value##*/}"
+  fi
+
+  value="${value#canvas-}"
+  value="${value%--chromium}"
+  value="${value%-chromium}"
+  value="$(printf '%s' "${value}" | sed -E 's/-[a-f0-9]{5,}-/-/g')"
+
+  case "${value}" in
+    *from-the-browser-runtime*)
+      value="Canvas instrumentation: reads gameplay snapshot"
+      ;;
+    *without-dom-based-assertions*)
+      value="Canvas instrumentation: deterministic spawn helper"
+      ;;
+    customer-seating-flow-*browser-clicks-1-customers*)
+      value="Seat flow: browser clicks, 1 customer"
+      ;;
+    customer-seating-flow-*browser-clicks-2-customers*)
+      value="Seat flow: browser clicks, 2 customers"
+      ;;
+    customer-seating-flow-*browser-clicks-4-customers*)
+      value="Seat flow: browser clicks, 4 customers"
+      ;;
+    customer-seating-flow-*to-reception-1-customers*)
+      value="Seat flow: reception, 1 customer"
+      ;;
+    customer-seating-flow-*to-reception-2-customers*)
+      value="Seat flow: reception, 2 customers"
+      ;;
+    customer-seating-flow-*to-reception-4-customers*)
+      value="Seat flow: reception, 4 customers"
+      ;;
+    *)
+      value="${value//-/ }"
+      value="$(printf '%s' "${value}" | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+      ;;
+  esac
+
+  printf '%s' "${value}"
+}
+
 if [ ! -d "${artifacts_root}" ]; then
   echo "No Playwright artifacts found under ${artifacts_root}."
   exit 1
@@ -25,10 +75,18 @@ if [ -z "${last_run_dir}" ]; then
 fi
 
 run_dir="${artifacts_root}/${last_run_dir}"
+video_root="${run_dir}"
 
 mapfile -t run_videos < <(
-  find "${run_dir}" -name '*.webm' -printf '%P\n' | sort
+  find "${run_dir}" -name 'canvas-*.webm' -printf '%P\n' | sort
 )
+
+if [ "${#run_videos[@]}" -eq 0 ]; then
+  video_root="${run_dir}/test-results"
+  mapfile -t run_videos < <(
+    find "${video_root}" -name 'video.webm' -printf '%P\n' | sort
+  )
+fi
 
 if [ "${#run_videos[@]}" -eq 0 ]; then
   echo "No Playwright video found under ${run_dir}."
@@ -43,11 +101,12 @@ video_json="["
 
 for index in "${!run_videos[@]}"; do
   relative_path="${run_videos[$index]}"
-  source_path="${run_dir}/${relative_path}"
+  source_path="${video_root}/${relative_path}"
   target_name="$(printf '%02d-%s' "$((index + 1))" "$(echo "${relative_path}" | tr '/ ' '__')")"
   cp -f "${source_path}" "${viewer_dir}/${target_name}"
 
-  escaped_label="$(printf '%s' "${relative_path}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  readable_label="$(humanize_video_label "${relative_path}")"
+  escaped_label="$(printf '%s' "${readable_label}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
   escaped_file="$(printf '%s' "${target_name}" | sed 's/\\/\\\\/g; s/"/\\"/g')"
 
   if [ "${index}" -gt 0 ]; then
