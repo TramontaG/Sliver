@@ -5,6 +5,7 @@ import { loadEverything } from "./Game/LoadAssets";
 import { canvasController } from "./Game/LoadAssets/LoadSprites";
 import { soundLibrary } from "./Game/LoadAssets/LoadSounds";
 import { createSceneManager } from "./Game/Scenes";
+import { installBrowserTestApi, type BrowserTestApi } from "./Game/TestInstrumentation";
 
 type AssetDefinitions = Awaited<ReturnType<typeof loadEverything>>;
 
@@ -12,6 +13,7 @@ declare global {
   interface Window {
     game: RamenEmpireGame;
     definitions: AssetDefinitions;
+    __testApi?: BrowserTestApi;
   }
 }
 
@@ -30,6 +32,7 @@ const createGame = async () => {
 
   window.game = game;
   game.start();
+  installBrowserTestApi(game, window);
 
   return game;
 };

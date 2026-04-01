@@ -2,7 +2,7 @@ import {
   CanvasController,
   GameObject,
   onClick,
-  renderSprite,
+  renderTile,
   Scene,
   SquareHitbox,
   Vector,
@@ -45,15 +45,11 @@ class LamenEmpireButton extends GameObject {
     );
   }
 
-  @renderSprite(
-    () => true,
-    "ui:Button",
-    (btn) => getBtnSprite(btn),
-    (btn: LamenEmpireButton) => btn.scale,
-    null,
-    (btn: LamenEmpireButton) =>
-      btn.getPosition().toAdded(new Vector(-32, -16).multiply(btn.scale))
-  )
+  @renderTile("ui:Button", (btn) => getBtnSprite(btn), {
+    scale: (btn: LamenEmpireButton) => btn.scale,
+    overridePosition: (btn: LamenEmpireButton) =>
+      btn.getPosition().toAdded(new Vector(-32, -16).multiply(btn.scale)),
+  })
   override render(canvas: CanvasController, scene: Scene) {
     super.render(canvas, scene);
     // Shennanigans to center the text on the button
@@ -73,9 +69,10 @@ class LamenEmpireButton extends GameObject {
       );
   }
 
-  @onClick<LamenEmpireButton>((btn) => {
+  @onClick<LamenEmpireButton>((btn, event) => {
     btn.onClick?.();
     btn.getContext()?.getSoundManager().playSound("confirm_3");
+    event.stopPropagation = true;
   })
   override handleEvent(event: GameEvent): void {
     super.handleEvent(event);

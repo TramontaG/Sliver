@@ -3,10 +3,10 @@ import {
   scripted,
   sequenceOf,
   TextBoxSequence,
-  waitTicks,
   type GameContext,
   type TextEntry,
 } from "sliver-engine";
+import { defaultSaveLabel } from "../../../Definitions/Saves";
 
 export const runIntroCutscene = async (ctx: GameContext) => {
   const spriteLeft: TextEntry["sprite"] = {
@@ -82,13 +82,22 @@ export const runIntroCutscene = async (ctx: GameContext) => {
   ]);
 
   return sequenceOf([
-    // `SceneManager.transitionToScene()` calls `setup()` before updating `currentScene`.
-    // `TextBoxSequence` adds the TextBox to `getCurrentScene()`, so we wait 1 tick to
-    // ensure the incoming scene is current before spawning dialog.
-    waitTicks(1),
     textSequence,
     scripted(async (ctx, state) => {
-      ctx.transitionToScene("startGameScene", fadeTransition(100));
+      const existingSaves = ctx.getGame().saves.list();
+      const hasDefaultSave = existingSaves.some(
+        (save) => save?.label === defaultSaveLabel
+      );
+      if (!hasDefaultSave) {
+        ctx.getGame().saves.create(
+          {
+            version: 1,
+            introComplete: true,
+          },
+          { label: defaultSaveLabel }
+        );
+      }
+      ctx.transitionToScene("restaurantScene", fadeTransition(100));
       return state;
     }),
   ]).run(ctx, {});

@@ -1,9 +1,11 @@
 import { CanvasController, type SpriteLibrary } from "sliver-engine";
 import {
   createFaceAnimation,
+  createSpriteManifest,
   createSpriteAnimation,
   createUIspriteAnimation,
   faceSpritesheetSize,
+  interiorSpritesheetSize,
   spriteSize,
 } from "../Definitions/Sprites";
 
@@ -15,6 +17,11 @@ const people = import.meta.glob<string>(
 
 const ui = import.meta.glob<string>(
   "../Assets/Paid/UI/*.{png,jpg,jpeg,svg,gif}",
+  { eager: true, query: "?url", import: "default" }
+);
+
+const interiors = import.meta.glob<string>(
+  "../Assets/Paid/Interiors/*.{png,jpg,jpeg,svg,gif}",
   { eager: true, query: "?url", import: "default" }
 );
 
@@ -57,7 +64,33 @@ const loadSprites = async (library: SpriteLibrary) => {
     })
   );
 
-  return [...names, ..._ui].reduce(
+  const _interiors = await Promise.all(
+    Object.entries(interiors).map(async ([path, url]) => {
+      const name = getFileBaseName(path);
+      const assetUrl = new URL(url, window.location.origin);
+      if (name === "rest_1") {
+        await library.loadSprite(name, assetUrl);
+        return name;
+      }
+
+      const sheetName = name === "Interiors_16x16" ? "interiors" : name;
+      const [frameWidth, frameHeight] = interiorSpritesheetSize;
+
+      await library.loadSpriteSheet(
+        sheetName,
+        assetUrl,
+        frameWidth,
+        frameHeight
+      );
+
+      return sheetName;
+    })
+  );
+
+  const peopleSheets = names.filter((name) => !name.startsWith("face:"));
+  library.loadSpriteDefinitions(createSpriteManifest(peopleSheets));
+
+  return [...names, ..._ui, ..._interiors].reduce(
     (acc, name) => {
       if (name.startsWith("ui:")) {
         acc.ui[name] = createUIspriteAnimation(name);
@@ -67,16 +100,22 @@ const loadSprites = async (library: SpriteLibrary) => {
         acc.faces[name] = createFaceAnimation();
       }
 
+      if (name.startsWith("interior:")) {
+        acc.interiors[name] = name;
+      }
+
       return acc;
     },
     {
       ui: {},
       people: {},
       faces: {},
+      interiors: {},
     } as {
       ui: Record<string, ReturnType<typeof createUIspriteAnimation>>;
       people: Record<string, ReturnType<typeof createSpriteAnimation>>;
       faces: Record<string, ReturnType<typeof createFaceAnimation>>;
+      interiors: Record<string, string>;
     }
   );
 };

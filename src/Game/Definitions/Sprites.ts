@@ -1,6 +1,29 @@
-const getIndex = (cols: number, x: number, y: number) => {
-  return y * cols + x;
+type SpriteManifest = {
+  sprites: Record<string, SpriteManifestEntry>;
 };
+
+type SpriteManifestRectEntry = {
+  sheet: string;
+  rect: {
+    from: [number, number] | number;
+    to: [number, number] | number;
+    mode: "grid" | "id";
+  };
+};
+
+type SpriteManifestGridEntry = {
+  sheet: string;
+  grid: {
+    tiles: (number | null | [number, number])[][];
+    mode: "grid" | "id";
+  };
+};
+
+type SpriteManifestEntry = SpriteManifestGridEntry | SpriteManifestRectEntry;
+
+const adultSheetColumns = 56;
+const kidSheetColumns = 24;
+const peopleFrameTileHeight = 2;
 
 const idleKidFrames = {
   right: [24, 25, 26, 27, 28, 29],
@@ -18,72 +41,72 @@ const walkKidFrames = {
 
 const idleAdultFrames = {
   right: [
-    [1, 0],
-    [1, 1],
-    [1, 2],
-    [1, 3],
-    [1, 4],
-    [1, 5],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [112, 168],
+    [113, 169],
+    [114, 170],
+    [115, 171],
+    [116, 172],
+    [117, 173],
+  ],
   up: [
-    [1, 6],
-    [1, 7],
-    [1, 8],
-    [1, 9],
-    [1, 10],
-    [1, 11],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [118, 174],
+    [119, 175],
+    [120, 176],
+    [121, 177],
+    [122, 178],
+    [123, 179],
+  ],
   left: [
-    [1, 12],
-    [1, 13],
-    [1, 14],
-    [1, 15],
-    [1, 16],
-    [1, 17],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [124, 180],
+    [125, 181],
+    [126, 182],
+    [127, 183],
+    [128, 184],
+    [129, 185],
+  ],
   down: [
-    [1, 18],
-    [1, 19],
-    [1, 20],
-    [1, 21],
-    [1, 22],
-    [1, 23],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [130, 186],
+    [131, 187],
+    [132, 188],
+    [133, 189],
+    [134, 190],
+    [135, 191],
+  ],
 };
 
 const walkAdultFrames = {
   right: [
-    [2, 0],
-    [2, 1],
-    [2, 2],
-    [2, 3],
-    [2, 4],
-    [2, 5],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [224, 280],
+    [225, 281],
+    [226, 282],
+    [227, 283],
+    [228, 284],
+    [229, 285],
+  ],
   up: [
-    [2, 6],
-    [2, 7],
-    [2, 8],
-    [2, 9],
-    [2, 10],
-    [2, 11],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [230, 286],
+    [231, 287],
+    [232, 288],
+    [233, 289],
+    [234, 290],
+    [235, 291],
+  ],
   left: [
-    [2, 12],
-    [2, 13],
-    [2, 14],
-    [2, 15],
-    [2, 16],
-    [2, 17],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [236, 292],
+    [237, 293],
+    [238, 294],
+    [239, 295],
+    [240, 296],
+    [241, 297],
+  ],
   down: [
-    [2, 18],
-    [2, 19],
-    [2, 20],
-    [2, 21],
-    [2, 22],
-    [2, 23],
-  ].map(([x, y]) => getIndex(56, x, y)),
+    [242, 298],
+    [243, 299],
+    [244, 300],
+    [245, 301],
+    [246, 302],
+    [247, 303],
+  ],
 };
 
 export const createSpriteAnimation = (name: string) => {
@@ -130,7 +153,87 @@ export const createUIspriteAnimation = (name: string) => {
   };
 };
 
+export const createSpriteManifest = (
+  peopleSheets: string[]
+): SpriteManifest => {
+  const directions = ["right", "up", "left", "down"] as const;
+  const getPeopleSheetColumns = (sheetName: string) =>
+    sheetName.toLowerCase().startsWith("kid")
+      ? kidSheetColumns
+      : adultSheetColumns;
+  const buildFrameTiles = (frameId: number, columns: number) => {
+    const tiles = [[frameId]];
+    for (let row = 1; row < peopleFrameTileHeight; row += 1) {
+      tiles.push([frameId + columns * row]);
+    }
+    return tiles;
+  };
+  const normalizeFrameTiles = (
+    frame: number | [number, number],
+    columns: number
+  ) => {
+    if (Array.isArray(frame)) {
+      return frame.map((tileId) => [tileId]);
+    }
+    return buildFrameTiles(frame, columns);
+  };
+  const sprites: Record<string, SpriteManifestEntry> = {
+    "ui:Button:primary": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[0]] },
+    },
+    "ui:Button:primary:hover": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[1]] },
+    },
+    "ui:Button:secondary": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[2]] },
+    },
+    "ui:Button:secondary:hover": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[3]] },
+    },
+    "ui:Button:tertiary": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[4]] },
+    },
+    "ui:Button:tertiary:hover": {
+      sheet: "ui:Button",
+      grid: { mode: "id", tiles: [[5]] },
+    },
+  };
+
+  peopleSheets.forEach((sheetName) => {
+    const animations = createSpriteAnimation(sheetName);
+    const addFrames = (
+      state: "idle" | "walk",
+      direction: (typeof directions)[number],
+      frames: Array<number | [number, number]>
+    ) => {
+      frames.forEach((frameId, index) => {
+        const key = `people:${sheetName}:${state}:${direction}:${index}`;
+        const columns = getPeopleSheetColumns(sheetName);
+        sprites[key] = {
+          sheet: sheetName,
+          grid: { mode: "id", tiles: normalizeFrameTiles(frameId, columns) },
+        };
+      });
+    };
+
+    directions.forEach((direction) => {
+      // @ts-ignore
+      addFrames("idle", direction, animations.idle![direction]);
+      // @ts-ignore
+      addFrames("walk", direction, animations.walk![direction]);
+    });
+  });
+
+  return { sprites };
+};
+
 export const spriteSize = [16, 16] as const;
+export const interiorSpritesheetSize = [16, 16] as const;
 export const kidSpritesheetSize = [16, 32] as const;
 export const adultSpritesheetSize = [16, 32] as const;
 export const faceSpritesheetSize = [32, 32] as const;
