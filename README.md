@@ -95,8 +95,9 @@ Importado em 2026-10-30, sem reescrever ou condensar os históricos originais:
 
 A engine foi movida com Git e o jogo incorporado por merge dos históricos, sem
 submódulos ou repositórios Git aninhados. Os remotes antigos são referências;
-não são destinos para publicar o monorepo. O novo repositório ainda não tem
-`origin` no GitHub. Criar/configurar esse destino é uma etapa separada.
+não são destinos para publicar o monorepo. O `origin` do workspace é o repositório
+privado [TramontaG/Sliver](https://github.com/TramontaG/Sliver), configurado via SSH
+como `git@github.com:TramontaG/Sliver.git`.
 
 ## Arquivos externos e pendências herdadas
 
