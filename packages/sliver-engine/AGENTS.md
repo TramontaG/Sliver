@@ -1,5 +1,10 @@
 # CanvasGE project guidelines
 
+This engine lives in `packages/sliver-engine` inside the Sliver + RamenEmpire
+monorepo. Install dependencies at the workspace root with Bun. The game consumes
+engine sources directly through its shared Vite/Vitest configuration. Keep engine
+and game package versions independent; see `../../README.md` for the local workflow.
+
 These guidelines aim to keep the engine and docs consistent with the existing
 codebase. Prefer following established patterns from nearby modules over
 inventing new ones.

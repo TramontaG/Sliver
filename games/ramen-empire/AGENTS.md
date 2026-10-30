@@ -1,5 +1,15 @@
 # Sliver Engine game-dev guidelines
 
+## Monorepo local
+
+- Este jogo vive em `games/ramen-empire/` no workspace Sliver. Leia o `../../README.md`.
+- Instale dependências na raiz com `bun install`; não instale uma cópia do npm da engine.
+- Preserve `sliver-engine: workspace:*`: o Vite e o Vitest carregam as fontes locais
+  usando o alias compartilhado em `vite.config.ts`.
+- Inicie com `bun run dev` na raiz para recarga do jogo e atualização dos tipos.
+- Versões do jogo e da engine são independentes. A orientação de npm a seguir
+  descreve o consumo externo da biblioteca, não o fluxo deste workspace.
+
 This guide is for building a game _with_ Sliver Engine as an npm package.
 It assumes you are consuming the library in your own project.
 

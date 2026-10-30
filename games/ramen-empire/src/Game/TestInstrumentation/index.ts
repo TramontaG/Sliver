@@ -351,8 +351,9 @@ const startCanvasRecording = async (
 
 const stopCanvasRecording = async (): Promise<Blob | null> => {
   const activeRecording = canvasRecordingState;
+  const mediaRecorder = activeRecording.mediaRecorder;
 
-  if (!activeRecording.mediaRecorder) {
+  if (!mediaRecorder) {
     return null;
   }
 
@@ -375,19 +376,19 @@ const stopCanvasRecording = async (): Promise<Blob | null> => {
       }
     };
 
-    if (activeRecording.mediaRecorder?.state === "inactive") {
+    if (mediaRecorder.state === "inactive") {
       void finalize();
       return;
     }
 
-    activeRecording.mediaRecorder.addEventListener(
+    mediaRecorder.addEventListener(
       "stop",
       () => {
         void finalize();
       },
       { once: true }
     );
-    activeRecording.mediaRecorder.stop();
+    mediaRecorder.stop();
   });
 
   return activeRecording.stopPromise;

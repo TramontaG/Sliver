@@ -1,5 +1,12 @@
 # Sliver Engine
 
+Este pacote agora faz parte do monorepo Sliver + RamenEmpire. Consulte o
+[README do workspace](../../README.md) para desenvolver engine e jogo juntos,
+sem publicar no npm. Instale as dependências na raiz com Bun; `bun run dev` na
+raiz inicia o jogo e observa as alterações da engine. A versão deste pacote é
+independente da versão do jogo. As instruções de consumo externo abaixo continuam
+válidas para o pacote distribuído.
+
 Pre-alpha TypeScript/HTML5 Canvas 2D game engine.
 
 Official documentation: https://sliver-engine.gramont.digital

@@ -1,0 +1,22 @@
+{
+  "name": "sliver-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.11",
+  "workspaces": ["packages/sliver-engine", "games/ramen-empire"],
+  "scripts": {
+    "dev": "bun run types:engine && bun run --parallel --elide-lines 0 --filter sliver-engine --filter ramen-empire dev",
+    "types:engine": "bun run --cwd packages/sliver-engine build:types",
+    "build": "bun run build:engine && bun run build:game",
+    "build:engine": "bun run --cwd packages/sliver-engine build",
+    "build:game": "bun run --cwd games/ramen-empire build",
+    "typecheck": "bun run typecheck:engine && bun run typecheck:game",
+    "typecheck:engine": "bun run --cwd packages/sliver-engine typecheck",
+    "typecheck:game": "bun run --cwd games/ramen-empire typecheck",
+    "test": "bun run types:engine && bun run --parallel --no-exit-on-error --filter sliver-engine --filter ramen-empire test:unit",
+    "test:engine": "bun run --cwd packages/sliver-engine test:unit",
+    "test:game": "bun run types:engine && bun run --cwd games/ramen-empire test:unit",
+    "test:browser": "bun run --cwd games/ramen-empire test:browser",
+    "preview": "bun run --cwd games/ramen-empire preview"
+  }
+}
