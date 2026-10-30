@@ -1,0 +1,34 @@
+{
+  "name": "ramen-empire",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "bash scripts/run-all-tests.sh",
+    "test:all": "bash scripts/run-all-tests.sh",
+    "test:browser": "bash scripts/run-playwright-with-history.sh",
+    "test:browser:trace": "PLAYWRIGHT_TRACE_MODE=on bash scripts/run-playwright-with-history.sh",
+    "test:browser:trace:seating": "PLAYWRIGHT_TRACE_MODE=on bash scripts/run-playwright-with-history.sh tests/browser/customer-seating-flow.spec.ts",
+    "test:browser:show-last-video": "bash scripts/show-last-playwright-video.sh",
+    "test:browser:show-last-trace": "bash scripts/show-last-playwright-trace.sh",
+    "test:browser:report": "bash scripts/show-last-playwright-report.sh",
+    "test:browser:install": "playwright install chromium",
+    "typecheck": "tsc --noEmit",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "jsdom": "^29.0.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.0",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "sliver-engine": "0.0.1-alpha-9"
+  }
+}

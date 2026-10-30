@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ramen Empire</title>
+  </head>
+  <body>
+    <div id="app">
+      <main class="landing" data-i18n-attr="aria-label:app.name">
+        <header class="topbar">
+          <div class="brand" data-i18n-attr="aria-label:app.name">
+            <div class="brand__mark" aria-hidden="true"></div>
+            <div class="brand__text">
+              <div class="brand__name" data-i18n="app.name">Ramen Empire</div>
+              <div class="brand__tagline" data-i18n="app.tagline">
+                Build your ramen shop. Rule the streets.
+              </div>
+            </div>
+          </div>
+
+          <div class="lang">
+            <label class="lang__label" for="lang" data-i18n="language.label"
+              >Language</label
+            >
+            <select id="lang" class="lang__select" name="lang">
+              <option value="en">English</option>
+              <option value="pt-BR">Português (Brasil)</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="hero" data-i18n-attr="aria-label:app.name">
+          <div class="hero__sign" aria-hidden="true">
+            <div class="sign__rope"></div>
+            <div class="sign__plate">
+              <div class="sign__title" data-i18n="app.name">Ramen Empire</div>
+            </div>
+            <div
+              class="sign__lantern sign__lantern--left"
+              aria-hidden="true"
+            ></div>
+            <div
+              class="sign__lantern sign__lantern--right"
+              aria-hidden="true"
+            ></div>
+          </div>
+
+          <div class="frame">
+            <div class="frame__inner" id="canvas-container"></div>
+          </div>
+
+          <div class="below">
+            <p class="below__desc" data-i18n="app.description">
+              A cozy pixel world where every bowl counts. Start small, expand
+              fast, and become the ultimate ramen tycoon.
+            </p>
+            <div class="cta">
+              <button
+                class="cta__primary"
+                id="play"
+                type="button"
+                data-i18n="cta.play"
+              >
+                Play
+              </button>
+              <button
+                class="cta__secondary"
+                id="continue"
+                type="button"
+                disabled
+                data-i18n="cta.continue"
+                data-i18n-attr="title:cta.continue.hint"
+              >
+                Continue
+              </button>
+              <button
+                class="cta__secondary"
+                id="settings"
+                type="button"
+                data-i18n="cta.settings"
+              >
+                Settings
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <div class="footer__line" data-i18n="footer.poweredBy">
+            Powered by your game engine
+          </div>
+          <div class="footer__line footer__muted" data-i18n="footer.stack">
+            Pixel Art • TypeScript • Canvas
+          </div>
+        </footer>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
