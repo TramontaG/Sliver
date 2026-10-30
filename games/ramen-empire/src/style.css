@@ -269,6 +269,12 @@ body::before {
   overflow: hidden;
 }
 
+.startup-error {
+  padding: 24px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .game-canvas {
   display: block;
   width: 100%;

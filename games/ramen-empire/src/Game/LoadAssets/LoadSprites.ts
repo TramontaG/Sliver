@@ -32,6 +32,27 @@ const getFileBaseName = (path: string) => {
 };
 
 const loadSprites = async (library: SpriteLibrary) => {
+  const requiredSprites = [
+    [people, "Hero", "People/Hero"],
+    [ui, "Button", "UI/Button"],
+    [interiors, "rest_1", "Interiors/rest_1"],
+    [interiors, "Interiors_16x16", "Interiors/Interiors_16x16"],
+  ] as const;
+  const missing = requiredSprites
+    .filter(([assets, name]) =>
+      !Object.keys(assets).some((path) => getFileBaseName(path) === name)
+    )
+    .map(([, , path]) => path);
+
+  if (missing.length > 0) {
+    throw new Error(
+      "Assets privados ausentes: " + missing.join(", ") + ". " +
+      "Restaure os arquivos originais nas pastas People, UI, Interiors e Sounds " +
+      "em games/ramen-empire/src/Game/Assets/Paid/ e recarregue a página. " +
+      "Esses arquivos não estão incluídos no Git."
+    );
+  }
+
   const names = await Promise.all(
     Object.entries(people).map(async ([path, url]) => {
       const name = getFileBaseName(path);

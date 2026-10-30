@@ -37,6 +37,15 @@ const createGame = async () => {
   return game;
 };
 
-createGame().then(async (game) => {
+createGame().then((game) => {
   console.log("Game started:", game);
+}).catch((error: unknown) => {
+  console.error("Não foi possível iniciar o Ramen Empire:", error);
+  const container = document.querySelector("#canvas-container") ?? app;
+  const message = document.createElement("p");
+  message.setAttribute("role", "alert");
+  message.className = "startup-error";
+  message.textContent = "Não foi possível iniciar o Ramen Empire. " +
+    (error instanceof Error ? error.message : String(error));
+  container.replaceChildren(message);
 });
